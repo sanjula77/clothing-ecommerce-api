@@ -1,4 +1,7 @@
 import User from "../models/User.js";
+import Cart from "../models/Cart.js";
+import Product from "../models/Product.js";
+import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
 
@@ -12,7 +15,7 @@ const generateToken = (userId) => {
 // @access Public
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, guestCart } = req.body;
 
     // Check if user exists
     const existingUser = await User.findOne({ email });
@@ -21,6 +24,60 @@ export const register = async (req, res, next) => {
     }
 
     const user = await User.create({ name, email, password });
+
+    // Merge guest cart if provided
+    if (guestCart && Array.isArray(guestCart.items) && guestCart.items.length > 0) {
+      try {
+        let cart = await Cart.findOne({ user: user._id });
+        if (!cart) {
+          cart = await Cart.create({ user: user._id, items: [] });
+        }
+
+        for (const guestItem of guestCart.items) {
+          if (!guestItem.product || !guestItem.size || !guestItem.quantity) {
+            continue;
+          }
+
+          if (!mongoose.Types.ObjectId.isValid(guestItem.product)) {
+            continue;
+          }
+
+          const product = await Product.findById(guestItem.product);
+          if (!product || !product.inStock || !product.sizes.includes(guestItem.size)) {
+            continue;
+          }
+
+          const existingItem = cart.items.find(
+            (item) =>
+              item.product.toString() === guestItem.product.toString() &&
+              item.size === guestItem.size
+          );
+
+          if (existingItem) {
+            const newQuantity = existingItem.quantity + guestItem.quantity;
+            if (product.stock >= newQuantity) {
+              existingItem.quantity = newQuantity;
+            } else {
+              existingItem.quantity = product.stock;
+            }
+          } else {
+            const quantityToAdd = Math.min(guestItem.quantity, product.stock);
+            if (quantityToAdd > 0) {
+              cart.items.push({
+                product: guestItem.product,
+                size: guestItem.size,
+                quantity: quantityToAdd,
+              });
+            }
+          }
+        }
+
+        await cart.save();
+      } catch (cartError) {
+        // Don't fail registration if cart merge fails
+        console.error("Cart merge error during registration:", cartError);
+      }
+    }
 
     res.status(201).json({
       _id: user._id,
@@ -38,13 +95,67 @@ export const register = async (req, res, next) => {
 // @access Public
 export const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, guestCart } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) return res.status(401).json({ message: "Invalid credentials" });
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+
+    // Merge guest cart if provided
+    if (guestCart && Array.isArray(guestCart.items) && guestCart.items.length > 0) {
+      try {
+        let cart = await Cart.findOne({ user: user._id });
+        if (!cart) {
+          cart = await Cart.create({ user: user._id, items: [] });
+        }
+
+        for (const guestItem of guestCart.items) {
+          if (!guestItem.product || !guestItem.size || !guestItem.quantity) {
+            continue;
+          }
+
+          if (!mongoose.Types.ObjectId.isValid(guestItem.product)) {
+            continue;
+          }
+
+          const product = await Product.findById(guestItem.product);
+          if (!product || !product.inStock || !product.sizes.includes(guestItem.size)) {
+            continue;
+          }
+
+          const existingItem = cart.items.find(
+            (item) =>
+              item.product.toString() === guestItem.product.toString() &&
+              item.size === guestItem.size
+          );
+
+          if (existingItem) {
+            const newQuantity = existingItem.quantity + guestItem.quantity;
+            if (product.stock >= newQuantity) {
+              existingItem.quantity = newQuantity;
+            } else {
+              existingItem.quantity = product.stock;
+            }
+          } else {
+            const quantityToAdd = Math.min(guestItem.quantity, product.stock);
+            if (quantityToAdd > 0) {
+              cart.items.push({
+                product: guestItem.product,
+                size: guestItem.size,
+                quantity: quantityToAdd,
+              });
+            }
+          }
+        }
+
+        await cart.save();
+      } catch (cartError) {
+        // Don't fail login if cart merge fails
+        console.error("Cart merge error during login:", cartError);
+      }
+    }
 
     res.json({
       _id: user._id,
