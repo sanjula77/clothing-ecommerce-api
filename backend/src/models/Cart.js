@@ -35,7 +35,7 @@ const cartSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "User is required"],
       unique: true,
-      index: true,
+      // unique: true automatically creates an index, no need for index: true
     },
     items: {
       type: [cartItemSchema],
@@ -49,8 +49,7 @@ const cartSchema = new mongoose.Schema(
   }
 );
 
-// Index for faster queries
-cartSchema.index({ user: 1 });
+// Note: user field already has an index from unique: true, no need for additional index
 
 // Virtual for total items count
 cartItemSchema.virtual("subtotal").get(function () {
