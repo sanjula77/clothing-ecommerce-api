@@ -128,13 +128,12 @@ orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
 // Generate unique order number before saving
-orderSchema.pre("save", async function (next) {
+orderSchema.pre("save", async function () {
   if (this.isNew && !this.orderNumber) {
     const timestamp = Date.now().toString(36).toUpperCase();
     const random = Math.random().toString(36).substring(2, 8).toUpperCase();
     this.orderNumber = `ORD-${timestamp}-${random}`;
   }
-  next();
 });
 
 // Virtual for order summary
@@ -143,14 +142,13 @@ orderSchema.virtual("itemCount").get(function () {
 });
 
 // Prevent modification of critical fields after creation
-orderSchema.pre("save", function (next) {
+orderSchema.pre("save", function () {
   if (!this.isNew) {
     // Prevent changing immutable fields
     if (this.isModified("user") || this.isModified("items") || this.isModified("totalAmount")) {
-      return next(new Error("Cannot modify immutable order fields"));
+      throw new Error("Cannot modify immutable order fields");
     }
   }
-  next();
 });
 
 export default mongoose.model("Order", orderSchema);

@@ -2,6 +2,9 @@ import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
+import User from "../models/User.js";
+import { sendEmail } from "../services/email.service.js";
+import { orderConfirmationTemplate } from "../templates/orderConfirmation.template.js";
 
 // @desc   Create new order from cart
 // @route  POST /api/orders
@@ -106,15 +109,30 @@ export const createOrder = async (req, res, next) => {
     cart.items = [];
     await cart.save({ session });
 
-    // Commit transaction
+    // Commit transaction FIRST (atomic operation complete)
     await session.commitTransaction();
     session.endSession();
+
+    // 🔥 Side effect starts here (safe - transaction already committed)
+    // Get user details for email
+    const user = await User.findById(req.user.id).select("name email");
 
     // Populate order for response
     const populatedOrder = await Order.findById(order[0]._id).populate(
       "user",
       "name email"
     );
+
+    // Send order confirmation email (fire and forget)
+    // Email failure won't affect the order or rollback data
+    sendEmail({
+      to: user.email,
+      subject: `Order Confirmation - ${order[0].orderNumber || order[0]._id}`,
+      html: orderConfirmationTemplate(order[0], user),
+    }).catch((emailError) => {
+      // Log but don't throw - order is already created
+      console.error("Failed to send order confirmation email:", emailError.message);
+    });
 
     res.status(201).json({
       success: true,
