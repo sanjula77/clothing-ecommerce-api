@@ -1,7 +1,7 @@
 import { AppError } from "../utils/AppError.js";
 
 // Error handling middleware
-export const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, _next) => {
   let error = { ...err };
   error.message = err.message;
 
@@ -37,7 +37,9 @@ export const errorHandler = (err, req, res, next) => {
 
   // Mongoose validation error
   if (err.name === "ValidationError") {
-    const message = Object.values(err.errors).map((val) => val.message).join(", ");
+    const message = Object.values(err.errors)
+      .map((val) => val.message)
+      .join(", ");
     error = new AppError(message, 400);
   }
 
@@ -67,4 +69,3 @@ export const notFound = (req, res, next) => {
   const error = new AppError(`Not Found - ${req.originalUrl}`, 404);
   next(error);
 };
-

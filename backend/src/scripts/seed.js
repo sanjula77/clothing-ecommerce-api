@@ -30,4 +30,3 @@ const runSeed = async () => {
 };
 
 runSeed();
-

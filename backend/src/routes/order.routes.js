@@ -6,7 +6,11 @@ import {
   updateOrderStatus,
 } from "../controllers/order.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
-import { validate, validateQuery, validateParams } from "../middleware/validate.js";
+import {
+  validate,
+  validateQuery,
+  validateParams,
+} from "../middleware/validate.js";
 import {
   createOrderSchema,
   updateOrderStatusSchema,
@@ -26,7 +30,12 @@ router.post("/", validate(createOrderSchema), createOrder);
 router.get("/my", validateQuery(getMyOrdersQuerySchema), getMyOrders);
 
 // Update order status (for future admin implementation)
-router.put("/:id/status", validateParams(orderIdSchema), validate(updateOrderStatusSchema), updateOrderStatus);
+router.put(
+  "/:id/status",
+  validateParams(orderIdSchema),
+  validate(updateOrderStatusSchema),
+  updateOrderStatus
+);
 
 // Get order by ID
 router.get("/:id", validateParams(orderIdSchema), getOrderById);

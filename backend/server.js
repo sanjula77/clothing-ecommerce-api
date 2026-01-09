@@ -19,9 +19,12 @@ const connectDB = async () => {
     console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    
+
     // Provide helpful error messages based on error type
-    if (error.message.includes("ENOTFOUND") || error.message.includes("querySrv")) {
+    if (
+      error.message.includes("ENOTFOUND") ||
+      error.message.includes("querySrv")
+    ) {
       console.error("\n💡 Troubleshooting tips:");
       console.error("   1. Check your internet connection");
       console.error("   2. Verify your MONGO_URI in .env file");
@@ -29,9 +32,11 @@ const connectDB = async () => {
       console.error("      - Ensure your cluster is running (not paused)");
       console.error("      - Check your IP whitelist in Atlas Network Access");
       console.error("      - Verify your connection string format");
-      console.error("   4. For local MongoDB, use: mongodb://localhost:27017/clothing-ecommerce");
+      console.error(
+        "   4. For local MongoDB, use: mongodb://localhost:27017/clothing-ecommerce"
+      );
     }
-    
+
     process.exit(1);
   }
 };
@@ -40,7 +45,7 @@ const connectDB = async () => {
 const startServer = async () => {
   try {
     await connectDB();
-    
+
     const PORT = env.PORT || 5000;
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -58,4 +63,3 @@ process.on("unhandledRejection", (err) => {
 });
 
 startServer();
-

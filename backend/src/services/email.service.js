@@ -11,7 +11,9 @@ let transporter = null;
 export const initEmailService = async () => {
   // Return null if email is not configured (for development)
   if (!env.EMAIL_HOST || !env.EMAIL_USER || !env.EMAIL_PASS) {
-    console.warn("⚠️  Email service not configured. Set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env");
+    console.warn(
+      "⚠️  Email service not configured. Set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env"
+    );
     return null;
   }
 
@@ -33,7 +35,10 @@ export const initEmailService = async () => {
     // Verify connection on creation
     transporter.verify((error) => {
       if (error) {
-        console.error("❌ Email transporter verification failed:", error.message);
+        console.error(
+          "❌ Email transporter verification failed:",
+          error.message
+        );
       } else {
         console.log("✅ Email service ready");
       }
@@ -41,11 +46,6 @@ export const initEmailService = async () => {
   }
 
   return transporter;
-};
-
-// Legacy function name for backward compatibility
-const createTransporter = () => {
-  return initEmailService();
 };
 
 /**
@@ -64,14 +64,18 @@ export const sendEmail = async ({ to, subject, html, text }) => {
     if (!transporter) {
       await initEmailService();
     }
-    
+
     if (!transporter) {
-      console.warn(`⚠️  Email not sent to ${to} - Email service not configured`);
+      console.warn(
+        `⚠️  Email not sent to ${to} - Email service not configured`
+      );
       return;
     }
 
     if (!to || !subject || !html) {
-      console.error("❌ Email send failed: Missing required fields (to, subject, html)");
+      console.error(
+        "❌ Email send failed: Missing required fields (to, subject, html)"
+      );
       return;
     }
 
@@ -104,7 +108,7 @@ export const closeEmailService = async () => {
       transporter = null;
     } catch (error) {
       // Ignore errors when closing
-      console.warn('⚠️  Error closing email service:', error.message);
+      console.warn("⚠️  Error closing email service:", error.message);
     }
   }
 };

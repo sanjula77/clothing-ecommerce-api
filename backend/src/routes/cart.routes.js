@@ -36,7 +36,12 @@ router.post("/", validate(addToCartSchema), addToCart);
 router.post("/merge", validate(mergeCartSchema), mergeCart);
 
 // Update cart item quantity
-router.put("/:itemId", validateParams(cartItemIdSchema), validate(updateCartItemSchema), updateCartItem);
+router.put(
+  "/:itemId",
+  validateParams(cartItemIdSchema),
+  validate(updateCartItemSchema),
+  updateCartItem
+);
 
 // Remove item from cart
 router.delete("/:itemId", validateParams(cartItemIdSchema), removeCartItem);

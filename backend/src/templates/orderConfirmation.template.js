@@ -93,17 +93,25 @@ export const orderConfirmationTemplate = (order, user) => {
           <p style="margin: 8px 0;"><strong>Order Number:</strong> ${escapeHtml(order.orderNumber || order._id.toString())}</p>
           <p style="margin: 8px 0;"><strong>Order Date:</strong> ${formatDate(order.createdAt)}</p>
           <p style="margin: 8px 0;"><strong>Status:</strong> <span style="color: #667eea; font-weight: bold;">${escapeHtml(order.status)}</span></p>
-          ${order.shippingAddress ? `
+          ${
+            order.shippingAddress
+              ? `
             <p style="margin: 8px 0;"><strong>Shipping Address:</strong></p>
             <p style="margin: 4px 0; padding-left: 20px; color: #666;">
               ${escapeHtml(order.shippingAddress.street || "")}<br>
               ${escapeHtml(order.shippingAddress.city || "")}, ${escapeHtml(order.shippingAddress.state || "")} ${escapeHtml(order.shippingAddress.zipCode || "")}<br>
               ${escapeHtml(order.shippingAddress.country || "")}
             </p>
-          ` : ""}
-          ${order.paymentMethod ? `
+          `
+              : ""
+          }
+          ${
+            order.paymentMethod
+              ? `
             <p style="margin: 8px 0;"><strong>Payment Method:</strong> ${escapeHtml(order.paymentMethod)}</p>
-          ` : ""}
+          `
+              : ""
+          }
         </div>
         
         <p style="margin-top: 30px;">We'll send you another email once your order has been shipped.</p>
@@ -135,4 +143,3 @@ const escapeHtml = (text) => {
   };
   return String(text).replace(/[&<>"']/g, (m) => map[m]);
 };
-  
