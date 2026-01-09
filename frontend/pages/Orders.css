@@ -1,0 +1,270 @@
+.orders-page {
+  min-height: calc(100vh - 200px);
+  padding: 2rem 0;
+}
+
+.orders-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.orders-container h1 {
+  margin: 0 0 2rem 0;
+  color: #333;
+}
+
+.orders-error {
+  background: #fee;
+  color: #c33;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.orders-loading,
+.orders-empty {
+  text-align: center;
+  padding: 3rem;
+}
+
+.orders-empty p {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0 0 1.5rem 0;
+}
+
+.orders-empty-button {
+  display: inline-block;
+  background: #667eea;
+  color: white;
+  padding: 0.75rem 2rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.orders-empty-button:hover {
+  background: #5568d3;
+}
+
+.orders-list {
+  display: grid;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.order-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.order-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.order-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.order-card-header h3 {
+  margin: 0 0 0.25rem 0;
+  color: #333;
+}
+
+.order-card-date {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.order-status-badge {
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.order-card-items {
+  color: #666;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.order-card-total {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.order-detail-view {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.back-to-orders {
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+
+.back-to-orders:hover {
+  background: #e5e5e5;
+}
+
+.order-detail-card {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.order-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #eee;
+}
+
+.order-detail-header h2 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+}
+
+.order-date {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.order-detail-items {
+  margin-bottom: 2rem;
+}
+
+.order-detail-items h3 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.order-detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.order-item-info h4 {
+  margin: 0 0 0.25rem 0;
+  color: #333;
+}
+
+.order-item-info p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.order-item-price {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.order-detail-total {
+  text-align: right;
+  font-size: 1.5rem;
+  color: #667eea;
+  padding-top: 1.5rem;
+  border-top: 2px solid #eee;
+  margin-bottom: 2rem;
+}
+
+.order-detail-shipping,
+.order-detail-payment {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid #eee;
+}
+
+.order-detail-shipping h3,
+.order-detail-payment h3 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.order-detail-shipping p,
+.order-detail-payment p {
+  margin: 0;
+  color: #666;
+  line-height: 1.6;
+}
+
+.orders-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.pagination-button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+.pagination-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  color: #666;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .order-card-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .order-detail-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .order-detail-item {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
