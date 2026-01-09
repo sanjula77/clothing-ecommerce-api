@@ -1,0 +1,524 @@
+{
+  "info": {
+    "name": "Clothing E-Commerce - Email Service (Order Confirmation)",
+    "_postman_id": "phase4-email-service-collection",
+    "description": "Test email service functionality through order creation. Email is sent automatically after successful order creation (transaction commit). Email failures don't affect order creation.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token from login/register endpoint"
+    },
+    {
+      "key": "userEmail",
+      "value": "",
+      "type": "string",
+      "description": "User email address (to verify email delivery)"
+    },
+    {
+      "key": "orderId",
+      "value": "",
+      "type": "string",
+      "description": "Order ID (from createOrder response)"
+    }
+  ],
+  "item": [
+    {
+      "name": "Setup - Login to Get Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"your-email@example.com\",\n  \"password\": \"your-password\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auth", "login"]
+        },
+        "description": "Login to get JWT token. Copy the token to the 'token' variable. Also note your email address for email verification."
+      },
+      "response": []
+    },
+    {
+      "name": "Email Service Tests",
+      "item": [
+        {
+          "name": "Create Order - Triggers Email (Basic)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT authentication token"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Create order from cart. This will automatically send an order confirmation email to the user's email address after the transaction commits. Check your email inbox (and spam folder) for the confirmation email.\n\n**Email is sent AFTER transaction commits** - Order is already saved, so email failure won't affect the order."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order with Shipping - Triggers Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shippingAddress\": {\n    \"street\": \"123 Main Street\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"zipCode\": \"10001\",\n    \"country\": \"USA\"\n  },\n  \"paymentMethod\": \"CREDIT_CARD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Create order with shipping address and payment method. Email will include shipping address details in the confirmation."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order - Multiple Items Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Create order with multiple items. Email will show all items in a formatted table. First add multiple items to cart, then create order."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Email Content Verification",
+      "item": [
+        {
+          "name": "Get Order Details - Verify Email Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}"]
+            },
+            "description": "Get order details to verify the data that was sent in the email. Compare order details with email content to ensure accuracy."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email Contains Order Number",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}"]
+            },
+            "description": "Check order response for orderNumber field. Email subject and body should include this order number."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Email Service Configuration",
+      "item": [
+        {
+          "name": "Check Server Logs - Email Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "Check server health. Look at server console logs for email service status:\n- ✅ Email service ready (if configured)\n- ⚠️  Email service not configured (if missing env vars)\n- ❌ Email send failed (if email fails)\n- ✅ Email sent successfully (if email succeeds)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order - Test Email Failure Handling",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Test that order creation succeeds even if email fails. To test:\n1. Temporarily set wrong EMAIL credentials in .env\n2. Create order\n3. Verify order is created successfully\n4. Check server logs for email error (order should still be created)\n\nThis proves email is a side effect and doesn't affect order creation."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Email Template Testing",
+      "item": [
+        {
+          "name": "Create Order - Test Email Template (Minimal)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Create order with minimal data. Email template should handle missing optional fields gracefully (no shipping address, default payment method)."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order - Test Email Template (Full Data)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shippingAddress\": {\n    \"street\": \"456 Oak Avenue\",\n    \"city\": \"Los Angeles\",\n    \"state\": \"CA\",\n    \"zipCode\": \"90001\",\n    \"country\": \"USA\"\n  },\n  \"paymentMethod\": \"PAYPAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Create order with complete data. Email should display:\n- All order items in table format\n- Shipping address\n- Payment method\n- Order number\n- Formatted currency\n- Formatted date"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order - Test Different Payment Methods",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"DEBIT_CARD\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Test email with different payment methods: CASH_ON_DELIVERY, CREDIT_CARD, DEBIT_CARD, PAYPAL"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Email Delivery Scenarios",
+      "item": [
+        {
+          "name": "Create Order - Normal Flow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Normal order creation flow:\n1. Order created ✅\n2. Cart cleared ✅\n3. Transaction committed ✅\n4. Email sent ✅\n5. Response returned ✅\n\nCheck email inbox for confirmation."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order - Email Not Configured",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Test behavior when email service is not configured (missing EMAIL_* env vars):\n- Order should still be created ✅\n- Server logs should show warning: '⚠️ Email service not configured'\n- No email sent (graceful degradation)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order - Email Service Down",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders"]
+            },
+            "description": "Test behavior when email service is configured but SMTP server is down:\n- Order should still be created ✅\n- Server logs should show: '❌ Email send failed'\n- Order response should still return successfully ✅\n\nThis proves email is a non-blocking side effect."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Email Content Checklist",
+      "item": [
+        {
+          "name": "Verify Email Contains All Required Fields",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}"]
+            },
+            "description": "After receiving email, verify it contains:\n✅ User's name\n✅ Order items (name, size, quantity, price)\n✅ Item subtotals\n✅ Total amount (formatted as currency)\n✅ Order number\n✅ Order date (formatted)\n✅ Order status\n✅ Shipping address (if provided)\n✅ Payment method (if provided)\n✅ Professional HTML formatting\n✅ Responsive design"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email Subject Line",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "orders", "{{orderId}}"]
+            },
+            "description": "Check email subject line format:\nShould be: 'Order Confirmation - {ORDER_NUMBER}'\nExample: 'Order Confirmation - ORD-ABC123-XYZ789'"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Testing Notes",
+      "item": [
+        {
+          "name": "📧 Email Testing Checklist",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            },
+            "description": "**Email Testing Checklist:**\n\n1. **Setup Email Service:**\n   - Add EMAIL_* variables to .env\n   - Restart server\n   - Check logs for '✅ Email service ready'\n\n2. **Test Order Creation:**\n   - Add items to cart\n   - Create order\n   - Check email inbox (and spam folder)\n\n3. **Verify Email Content:**\n   - All order details present\n   - Currency formatted correctly\n   - Date formatted correctly\n   - HTML renders properly\n\n4. **Test Failure Scenarios:**\n   - Order succeeds even if email fails\n   - Server logs show email errors\n   - Order data is still saved\n\n5. **Check Server Logs:**\n   - ✅ Email sent successfully\n   - ⚠️  Email service not configured\n   - ❌ Email send failed\n\n**Remember:** Email is sent AFTER transaction commits, so email failures don't affect order creation."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
+

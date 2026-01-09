@@ -1,0 +1,535 @@
+{
+  "info": {
+    "name": "Clothing E-Commerce - Phase 3 Cart",
+    "_postman_id": "phase3-cart-collection",
+    "description": "Cart Management API - Add items, update quantities, remove items, merge guest cart, and clear cart. All endpoints require authentication.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token from login/register endpoint"
+    },
+    {
+      "key": "cartItemId",
+      "value": "",
+      "type": "string",
+      "description": "Cart item ID (from getCart response)"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string",
+      "description": "Product ID (from products endpoint)"
+    }
+  ],
+  "item": [
+    {
+      "name": "Guest Cart (No Auth Required)",
+      "item": [
+        {
+          "name": "Validate Guest Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"product\": \"{{productId}}\",\n      \"size\": \"M\",\n      \"quantity\": 2\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/guest/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart", "guest", "validate"]
+            },
+            "description": "Validate guest cart items stored in localStorage. Returns validated items (removes invalid/out-of-stock items). Use this before merging cart on login/register."
+          },
+          "response": []
+        },
+        {
+          "name": "Validate Guest Cart (Example)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"product\": \"PRODUCT_ID_1\",\n      \"size\": \"M\",\n      \"quantity\": 2\n    },\n    {\n      \"product\": \"PRODUCT_ID_2\",\n      \"size\": \"L\",\n      \"quantity\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/guest/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart", "guest", "validate"]
+            },
+            "description": "Example: Validate multiple guest cart items. Replace PRODUCT_ID_1, PRODUCT_ID_2 with actual product IDs."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authenticated Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT authentication token"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Get the authenticated user's cart with all items and product details. Returns cart with calculated totals."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "JWT authentication token"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"size\": \"M\",\n  \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Add a product to the cart. If the same product with the same size already exists, the quantity will be added to the existing item. Validates stock availability."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Item to Cart (Example)",
+          "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"productId\": \"PRODUCT_ID_HERE\",\n  \"size\": \"L\",\n  \"quantity\": 2\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/cart",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cart"]
+        },
+            "description": "Example: Add 2 items of size L to cart. Replace PRODUCT_ID_HERE with actual product ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Cart Item Quantity",
+          "request": {
+            "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "description": "JWT authentication token"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"quantity\": 3\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/cart/{{cartItemId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cart", "{{cartItemId}}"]
+        },
+            "description": "Update the quantity of a specific cart item. Validates stock availability. Use cartItemId from getCart response."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Cart Item",
+          "request": {
+            "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "description": "JWT authentication token"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cart/{{cartItemId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cart", "{{cartItemId}}"]
+        },
+            "description": "Remove a specific item from the cart. Use cartItemId from getCart response."
+          },
+          "response": []
+        },
+        {
+          "name": "Clear Entire Cart",
+          "request": {
+            "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "description": "JWT authentication token"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cart",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cart"]
+        },
+            "description": "Remove all items from the cart. This clears the entire cart."
+          },
+          "response": []
+        },
+        {
+          "name": "Merge Guest Cart (Manual)",
+          "request": {
+            "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "description": "JWT authentication token"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"items\": [\n    {\n      \"product\": \"{{productId}}\",\n      \"size\": \"L\",\n      \"quantity\": 2\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/cart/merge",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cart", "merge"]
+        },
+            "description": "Manually merge guest cart items with the authenticated user's cart. Note: Guest cart is automatically merged on login/register if sent in request body. This endpoint is for manual merging."
+          },
+          "response": []
+        },
+        {
+          "name": "Merge Guest Cart - Multiple Items",
+          "request": {
+            "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"items\": [\n    {\n      \"product\": \"PRODUCT_ID_1\",\n      \"size\": \"M\",\n      \"quantity\": 1\n    },\n    {\n      \"product\": \"PRODUCT_ID_2\",\n      \"size\": \"L\",\n      \"quantity\": 2\n    },\n    {\n      \"product\": \"PRODUCT_ID_3\",\n      \"size\": \"S\",\n      \"quantity\": 1\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/cart/merge",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "cart", "merge"]
+        },
+            "description": "Example: Merge multiple guest cart items at once. Replace PRODUCT_ID_1, PRODUCT_ID_2, etc. with actual product IDs."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Add Item - Invalid Product ID",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"invalidid123\",\n  \"size\": \"M\",\n  \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Test error handling for invalid product ID format"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Item - Missing Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"PRODUCT_ID_HERE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Test error handling for missing required fields (size, quantity)"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Item - Invalid Size",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"PRODUCT_ID_HERE\",\n  \"size\": \"XXL\",\n  \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Test error handling for invalid size (not available for product)"
+          },
+          "response": []
+        },
+        {
+          "name": "Add Item - Exceeds Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"PRODUCT_ID_HERE\",\n  \"size\": \"M\",\n  \"quantity\": 9999\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Test error handling when trying to add more items than available in stock"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Item - Invalid Cart Item ID",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/invaliditemid123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart", "invaliditemid123"]
+            },
+            "description": "Test error handling for invalid or non-existent cart item ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Item - Invalid Quantity",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": -1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cart/{{cartItemId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart", "{{cartItemId}}"]
+            },
+            "description": "Test error handling for invalid quantity (negative or zero)"
+          },
+          "response": []
+        },
+        {
+          "name": "Unauthorized - No Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cart",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cart"]
+            },
+            "description": "Test error handling when accessing cart without authentication token"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

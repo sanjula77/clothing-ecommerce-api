@@ -1,0 +1,573 @@
+{
+  "info": {
+    "name": "Clothing E-Commerce - Phase 2 Products",
+    "_postman_id": "phase2-product-catalog",
+    "description": "Product Catalog API - Search, Filters, Pagination, Sorting, Product Detail",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "productId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Basic Requests",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"]
+            },
+            "description": "Get all products with default pagination (page=1, limit=10)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/{{productId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "{{productId}}"]
+            },
+            "description": "Get a single product by its ID. Replace {{productId}} with an actual product ID from your database."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product by Invalid ID (Error Test)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products/invalidid123",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products", "invalidid123"]
+            },
+            "description": "Test error handling for invalid product ID format"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Search & Filter",
+      "item": [
+        {
+          "name": "Search Products (By Name or Description)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?search=shirt",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "shirt",
+                  "description": "Search term for product name or description"
+                }
+              ]
+            },
+            "description": "Search products by name or description (case-insensitive)"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Category - Men",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?category=Men",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Men",
+                  "description": "Filter by category: Men, Women, or Kids"
+                }
+              ]
+            },
+            "description": "Filter products by category"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Category - Women",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?category=Women",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Women"
+                }
+              ]
+            },
+            "response": []
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Category - Kids",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?category=Kids",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Kids"
+                }
+              ]
+            },
+            "response": []
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Size",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?size=M",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "size",
+                  "value": "M",
+                  "description": "Filter by size: S, M, L, or XL"
+                }
+              ]
+            },
+            "description": "Filter products by available size"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Price Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?minPrice=2000&maxPrice=4000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "minPrice",
+                  "value": "2000",
+                  "description": "Minimum price"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "4000",
+                  "description": "Maximum price"
+                }
+              ]
+            },
+            "description": "Filter products within a price range"
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by Stock Availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?inStock=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "inStock",
+                  "value": "true",
+                  "description": "Filter by stock availability: true or false"
+                }
+              ]
+            },
+            "description": "Filter products by stock availability"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Combined Filters",
+      "item": [
+        {
+          "name": "Category + Size",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?category=Women&size=M",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Women"
+                },
+                {
+                  "key": "size",
+                  "value": "M"
+                }
+              ]
+            },
+            "description": "Combine multiple filters: category and size"
+          },
+          "response": []
+        },
+        {
+          "name": "Category + Price Range",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?category=Men&minPrice=2000&maxPrice=5000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Men"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "2000"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "5000"
+                }
+              ]
+            },
+            "description": "Filter by category and price range"
+          },
+          "response": []
+        },
+        {
+          "name": "Search + Category + Size",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?search=jeans&category=Men&size=L",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "jeans"
+                },
+                {
+                  "key": "category",
+                  "value": "Men"
+                },
+                {
+                  "key": "size",
+                  "value": "L"
+                }
+              ]
+            },
+            "description": "Combine search with multiple filters"
+          },
+          "response": []
+        },
+        {
+          "name": "All Filters Combined",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?search=shirt&category=Men&size=M&minPrice=1500&maxPrice=3000&inStock=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "shirt"
+                },
+                {
+                  "key": "category",
+                  "value": "Men"
+                },
+                {
+                  "key": "size",
+                  "value": "M"
+                },
+                {
+                  "key": "minPrice",
+                  "value": "1500"
+                },
+                {
+                  "key": "maxPrice",
+                  "value": "3000"
+                },
+                {
+                  "key": "inStock",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Example using all available filters together"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Pagination",
+      "item": [
+        {
+          "name": "Page 1 (Limit 5)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?page=1&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (starts from 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "5",
+                  "description": "Items per page (max 100)"
+                }
+              ]
+            },
+            "description": "Get first page with 5 items per page"
+          },
+          "response": []
+        },
+        {
+          "name": "Page 2 (Limit 5)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?page=2&limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "2"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get second page with 5 items per page"
+          },
+          "response": []
+        },
+        {
+          "name": "Pagination with Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?category=Women&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Women"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Combine pagination with filters"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sorting",
+      "item": [
+        {
+          "name": "Sort by Price (Low to High)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?sort=price",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "price",
+                  "description": "Sort by price ascending. Use -price for descending"
+                }
+              ]
+            },
+            "description": "Sort products by price (ascending)"
+          },
+          "response": []
+        },
+        {
+          "name": "Sort by Price (High to Low)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?sort=-price",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "-price",
+                  "description": "Sort by price descending (prefix with -)"
+                }
+              ]
+            },
+            "description": "Sort products by price (descending)"
+          },
+          "response": []
+        },
+        {
+          "name": "Sort by Name (A-Z)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?sort=name",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "name"
+                }
+              ]
+            },
+            "description": "Sort products alphabetically by name"
+          },
+          "response": []
+        },
+        {
+          "name": "Sort by Created Date (Newest First)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?sort=-createdAt",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "-createdAt",
+                  "description": "Default sort: newest products first"
+                }
+              ]
+            },
+            "description": "Sort by creation date (newest first - default)"
+          },
+          "response": []
+        },
+        {
+          "name": "Sort with Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?category=Men&sort=-price&page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Men"
+                },
+                {
+                  "key": "sort",
+                  "value": "-price"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Combine sorting with filters and pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Multi-field Sort",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/products?sort=-price,name",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "products"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "-price,name",
+                  "description": "Sort by price (desc) then name (asc). Separate fields with comma"
+                }
+              ]
+            },
+            "description": "Sort by multiple fields: price descending, then name ascending"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
