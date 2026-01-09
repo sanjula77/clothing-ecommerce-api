@@ -9,11 +9,19 @@ import {
   mergeCart,
 } from "../controllers/cart.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
+import { validate, validateParams } from "../middleware/validate.js";
+import {
+  guestCartSchema,
+  addToCartSchema,
+  updateCartItemSchema,
+  mergeCartSchema,
+  cartItemIdSchema,
+} from "../validators/cart.validator.js";
 
 const router = express.Router();
 
 // Guest cart endpoints (no authentication required)
-router.post("/guest/validate", validateGuestCart);
+router.post("/guest/validate", validate(guestCartSchema), validateGuestCart);
 
 // All other cart routes require authentication
 router.use(protect);
@@ -22,16 +30,16 @@ router.use(protect);
 router.get("/", getCart);
 
 // Add item to cart
-router.post("/", addToCart);
+router.post("/", validate(addToCartSchema), addToCart);
 
 // Merge guest cart with user cart
-router.post("/merge", mergeCart);
+router.post("/merge", validate(mergeCartSchema), mergeCart);
 
 // Update cart item quantity
-router.put("/:itemId", updateCartItem);
+router.put("/:itemId", validateParams(cartItemIdSchema), validate(updateCartItemSchema), updateCartItem);
 
 // Remove item from cart
-router.delete("/:itemId", removeCartItem);
+router.delete("/:itemId", validateParams(cartItemIdSchema), removeCartItem);
 
 // Clear entire cart
 router.delete("/", clearCart);

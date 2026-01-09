@@ -5,11 +5,13 @@ import Product from "../models/Product.js";
 import User from "../models/User.js";
 import { sendEmail } from "../services/email.service.js";
 import { orderConfirmationTemplate } from "../templates/orderConfirmation.template.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
+import { AppError } from "../utils/AppError.js";
 
 // @desc   Create new order from cart
 // @route  POST /api/orders
 // @access Private
-export const createOrder = async (req, res, next) => {
+export const createOrder = asyncHandler(async (req, res, next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -25,10 +27,7 @@ export const createOrder = async (req, res, next) => {
     if (!cart || cart.items.length === 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({
-        success: false,
-        error: "Cart is empty. Add items to cart before checkout.",
-      });
+      throw new AppError("Cart is empty. Add items to cart before checkout.", 400);
     }
 
     // Validate stock availability and build order items
@@ -67,15 +66,11 @@ export const createOrder = async (req, res, next) => {
       });
     }
 
-    // If any items are invalid, abort
+    // If any items are invalid, abort with detailed error messages
     if (errors.length > 0) {
       await session.abortTransaction();
       session.endSession();
-      return res.status(400).json({
-        success: false,
-        error: "Some items in your cart are no longer available",
-        details: errors,
-      });
+      throw new AppError("Some items in your cart are no longer available", 400, errors);
     }
 
     // Calculate total amount
@@ -83,6 +78,19 @@ export const createOrder = async (req, res, next) => {
       (sum, item) => sum + item.price * item.quantity,
       0
     );
+
+    // Decrement stock for each product (within transaction)
+    for (const cartItem of cart.items) {
+      const product = cartItem.product;
+      if (product && product.stock >= cartItem.quantity) {
+        product.stock -= cartItem.quantity;
+        // Update inStock flag if stock reaches 0
+        if (product.stock === 0) {
+          product.inStock = false;
+        }
+        await product.save({ session });
+      }
+    }
 
     // Create order with shipping address if provided
     const orderData = {
@@ -140,17 +148,19 @@ export const createOrder = async (req, res, next) => {
       message: "Order created successfully",
     });
   } catch (error) {
-    await session.abortTransaction();
+    // Only abort transaction if it hasn't been committed yet
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
     session.endSession();
-    next(error);
+    throw error; // Let asyncHandler catch it
   }
-};
+});
 
 // @desc   Get user's orders
 // @route  GET /api/orders/my
 // @access Private
-export const getMyOrders = async (req, res, next) => {
-  try {
+export const getMyOrders = asyncHandler(async (req, res, next) => {
     const { page = 1, limit = 10, status } = req.query;
 
     // Build query
@@ -190,91 +200,62 @@ export const getMyOrders = async (req, res, next) => {
         hasPrevPage: pageNum > 1,
       },
     });
-  } catch (error) {
-    next(error);
-  }
-};
+});
 
 // @desc   Get order by ID
 // @route  GET /api/orders/:id
 // @access Private
-export const getOrderById = async (req, res, next) => {
-  try {
+export const getOrderById = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid order ID format",
-      });
+      throw new AppError("Invalid order ID format", 400);
     }
 
     const order = await Order.findById(id).populate("user", "name email");
 
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: "Order not found",
-      });
+      throw new AppError("Order not found", 404);
     }
 
     // Check if order belongs to user
     if (order.user._id.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        error: "Not authorized to view this order",
-      });
+      throw new AppError("Not authorized to view this order", 403);
     }
 
     res.json({
       success: true,
       data: order,
     });
-  } catch (error) {
-    next(error);
-  }
-};
+});
 
 // @desc   Update order status (for admin - future implementation)
 // @route  PUT /api/orders/:id/status
 // @access Private (Admin only - to be implemented)
-export const updateOrderStatus = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
+export const updateOrderStatus = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { status } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid order ID format",
-      });
-    }
+  // Joi validation already handled id and status format
+  const order = await Order.findById(id);
 
-    const validStatuses = ["PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
-      });
-    }
+  if (!order) {
+    throw new AppError("Order not found", 404);
+  }
 
-    const order = await Order.findById(id);
+  // Check authorization: Only order owner or admin can update status
+  // Note: Admin role check can be added when user model includes role field
+  if (order.user.toString() !== req.user.id) {
+    // For now, only order owner can update their own order status
+    // In future, add: && req.user.role !== 'admin'
+    throw new AppError("Not authorized to update this order", 403);
+  }
 
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        error: "Order not found",
-      });
-    }
-
-    // Prevent status changes for cancelled orders
-    if (order.status === "CANCELLED") {
-      return res.status(400).json({
-        success: false,
-        error: "Cannot update status of cancelled order",
-      });
-    }
+  // Prevent status changes for cancelled orders
+  if (order.status === "CANCELLED") {
+    throw new AppError("Cannot update status of cancelled order", 400);
+  }
 
     order.status = status;
     await order.save();
@@ -284,8 +265,5 @@ export const updateOrderStatus = async (req, res, next) => {
       data: order,
       message: "Order status updated successfully",
     });
-  } catch (error) {
-    next(error);
-  }
-};
+});
   

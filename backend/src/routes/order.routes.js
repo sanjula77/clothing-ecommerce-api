@@ -6,6 +6,13 @@ import {
   updateOrderStatus,
 } from "../controllers/order.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
+import { validate, validateQuery, validateParams } from "../middleware/validate.js";
+import {
+  createOrderSchema,
+  updateOrderStatusSchema,
+  orderIdSchema,
+  getMyOrdersQuerySchema,
+} from "../validators/order.validator.js";
 
 const router = express.Router();
 
@@ -13,15 +20,15 @@ const router = express.Router();
 router.use(protect);
 
 // Create new order (checkout)
-router.post("/", createOrder);
+router.post("/", validate(createOrderSchema), createOrder);
 
 // Get user's orders (must come before /:id route)
-router.get("/my", getMyOrders);
+router.get("/my", validateQuery(getMyOrdersQuerySchema), getMyOrders);
 
 // Update order status (for future admin implementation)
-router.put("/:id/status", updateOrderStatus);
+router.put("/:id/status", validateParams(orderIdSchema), validate(updateOrderStatusSchema), updateOrderStatus);
 
 // Get order by ID
-router.get("/:id", getOrderById);
+router.get("/:id", validateParams(orderIdSchema), getOrderById);
 
 export default router;

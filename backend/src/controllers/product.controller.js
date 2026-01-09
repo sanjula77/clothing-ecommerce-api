@@ -1,9 +1,10 @@
 import Product from "../models/Product.js";
 import mongoose from "mongoose";
+import { asyncHandler } from "../middleware/asyncHandler.js";
+import { AppError } from "../utils/AppError.js";
 
 // GET /api/products?search=&category=&size=&minPrice=&maxPrice=&page=&limit=&sort=&inStock=
-export const getProducts = async (req, res, next) => {
-  try {
+export const getProducts = asyncHandler(async (req, res, next) => {
     const {
       search,
       category,
@@ -56,12 +57,9 @@ export const getProducts = async (req, res, next) => {
         query.price.$lte = max;
       }
       
-      // Validate price range
+      // Validate price range (Joi also validates this, but keeping as backup)
       if (minPrice && maxPrice && min > max) {
-        return res.status(400).json({
-          success: false,
-          error: "minPrice cannot be greater than maxPrice",
-        });
+        throw new AppError("minPrice cannot be greater than maxPrice", 400);
       }
     }
 
@@ -107,38 +105,25 @@ export const getProducts = async (req, res, next) => {
         hasPrevPage: pageNum > 1,
       },
     });
-  } catch (error) {
-    next(error);
-  }
-};
+});
 
 // GET /api/products/:id
-export const getProductById = async (req, res, next) => {
-  try {
-    const { id } = req.params;
+export const getProductById = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
 
-    // Validate MongoDB ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid product ID format",
-      });
-    }
-
-    const product = await Product.findById(id);
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        error: "Product not found",
-      });
-    }
-
-    res.json({
-      success: true,
-      data: product,
-    });
-  } catch (error) {
-    next(error);
+  // Joi validation already handled ObjectId format, but keeping as backup
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError("Invalid product ID format", 400);
   }
-};
+
+  const product = await Product.findById(id);
+
+  if (!product) {
+    throw new AppError("Product not found", 404);
+  }
+
+  res.json({
+    success: true,
+    data: product,
+  });
+});
