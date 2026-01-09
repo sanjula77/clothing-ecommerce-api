@@ -1,9 +1,8 @@
 import User from "../models/User.js";
-import Cart from "../models/Cart.js";
-import Product from "../models/Product.js";
-import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
+import { asyncHandler } from "../middleware/asyncHandler.js";
+import { AppError } from "../utils/AppError.js";
 
 // Generate JWT
 const generateToken = (userId) => {
@@ -13,169 +12,68 @@ const generateToken = (userId) => {
 // @desc   Register new user
 // @route  POST /api/auth/register
 // @access Public
-export const register = async (req, res, next) => {
-  try {
-    const { name, email, password, guestCart } = req.body;
+export const register = asyncHandler(async (req, res, next) => {
+  const { name, email, password } = req.body;
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email already in use" });
-    }
+  // Check if user exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw new AppError("Email already in use", 400);
+  }
 
-    const user = await User.create({ name, email, password });
+  const user = await User.create({ name, email, password });
 
-    // Merge guest cart if provided
-    if (guestCart && Array.isArray(guestCart.items) && guestCart.items.length > 0) {
-      try {
-        let cart = await Cart.findOne({ user: user._id });
-        if (!cart) {
-          cart = await Cart.create({ user: user._id, items: [] });
-        }
+  // Cart merge is now handled separately via POST /api/cart/merge after registration
+  // This ensures single source of truth for cart merging logic
 
-        for (const guestItem of guestCart.items) {
-          if (!guestItem.product || !guestItem.size || !guestItem.quantity) {
-            continue;
-          }
-
-          if (!mongoose.Types.ObjectId.isValid(guestItem.product)) {
-            continue;
-          }
-
-          const product = await Product.findById(guestItem.product);
-          if (!product || !product.inStock || !product.sizes.includes(guestItem.size)) {
-            continue;
-          }
-
-          const existingItem = cart.items.find(
-            (item) =>
-              item.product.toString() === guestItem.product.toString() &&
-              item.size === guestItem.size
-          );
-
-          if (existingItem) {
-            const newQuantity = existingItem.quantity + guestItem.quantity;
-            if (product.stock >= newQuantity) {
-              existingItem.quantity = newQuantity;
-            } else {
-              existingItem.quantity = product.stock;
-            }
-          } else {
-            const quantityToAdd = Math.min(guestItem.quantity, product.stock);
-            if (quantityToAdd > 0) {
-              cart.items.push({
-                product: guestItem.product,
-                size: guestItem.size,
-                quantity: quantityToAdd,
-              });
-            }
-          }
-        }
-
-        await cart.save();
-      } catch (cartError) {
-        // Don't fail registration if cart merge fails
-        console.error("Cart merge error during registration:", cartError);
-      }
-    }
-
-    res.status(201).json({
+  res.status(201).json({
+    success: true,
+    data: {
       _id: user._id,
       name: user.name,
       email: user.email,
       token: generateToken(user._id),
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+    },
+  });
+});
 
 // @desc   Login user
 // @route  POST /api/auth/login
 // @access Public
-export const login = async (req, res, next) => {
-  try {
-    const { email, password, guestCart } = req.body;
+export const login = asyncHandler(async (req, res, next) => {
+  const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new AppError("Invalid credentials", 401);
+  }
 
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
+  const isMatch = await user.matchPassword(password);
+  if (!isMatch) {
+    throw new AppError("Invalid credentials", 401);
+  }
 
-    // Merge guest cart if provided
-    if (guestCart && Array.isArray(guestCart.items) && guestCart.items.length > 0) {
-      try {
-        let cart = await Cart.findOne({ user: user._id });
-        if (!cart) {
-          cart = await Cart.create({ user: user._id, items: [] });
-        }
+  // Cart merge is now handled separately via POST /api/cart/merge after login
+  // This ensures single source of truth for cart merging logic
 
-        for (const guestItem of guestCart.items) {
-          if (!guestItem.product || !guestItem.size || !guestItem.quantity) {
-            continue;
-          }
-
-          if (!mongoose.Types.ObjectId.isValid(guestItem.product)) {
-            continue;
-          }
-
-          const product = await Product.findById(guestItem.product);
-          if (!product || !product.inStock || !product.sizes.includes(guestItem.size)) {
-            continue;
-          }
-
-          const existingItem = cart.items.find(
-            (item) =>
-              item.product.toString() === guestItem.product.toString() &&
-              item.size === guestItem.size
-          );
-
-          if (existingItem) {
-            const newQuantity = existingItem.quantity + guestItem.quantity;
-            if (product.stock >= newQuantity) {
-              existingItem.quantity = newQuantity;
-            } else {
-              existingItem.quantity = product.stock;
-            }
-          } else {
-            const quantityToAdd = Math.min(guestItem.quantity, product.stock);
-            if (quantityToAdd > 0) {
-              cart.items.push({
-                product: guestItem.product,
-                size: guestItem.size,
-                quantity: quantityToAdd,
-              });
-            }
-          }
-        }
-
-        await cart.save();
-      } catch (cartError) {
-        // Don't fail login if cart merge fails
-        console.error("Cart merge error during login:", cartError);
-      }
-    }
-
-    res.json({
+  res.json({
+    success: true,
+    data: {
       _id: user._id,
       name: user.name,
       email: user.email,
       token: generateToken(user._id),
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+    },
+  });
+});
 
 // @desc   Get current user
 // @route  GET /api/auth/me
 // @access Private
-export const getMe = async (req, res, next) => {
-  try {
-    // User is already fetched in protect middleware without password
-    res.json(req.user);
-  } catch (error) {
-    next(error);
-  }
-};
+export const getMe = asyncHandler(async (req, res, next) => {
+  // User is already fetched in protect middleware without password
+  res.json({
+    success: true,
+    data: req.user,
+  });
+});

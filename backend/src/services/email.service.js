@@ -4,7 +4,11 @@ import { env } from "../config/env.js";
 // Create transporter (reusable connection)
 let transporter = null;
 
-const createTransporter = () => {
+/**
+ * Initialize the email service transporter
+ * This is called automatically when needed, but can be called explicitly
+ */
+export const initEmailService = async () => {
   // Return null if email is not configured (for development)
   if (!env.EMAIL_HOST || !env.EMAIL_USER || !env.EMAIL_PASS) {
     console.warn("⚠️  Email service not configured. Set EMAIL_HOST, EMAIL_USER, and EMAIL_PASS in .env");
@@ -39,6 +43,11 @@ const createTransporter = () => {
   return transporter;
 };
 
+// Legacy function name for backward compatibility
+const createTransporter = () => {
+  return initEmailService();
+};
+
 /**
  * Send email asynchronously (fire and forget)
  * Email failures won't affect the main transaction
@@ -51,9 +60,12 @@ const createTransporter = () => {
  */
 export const sendEmail = async ({ to, subject, html, text }) => {
   try {
-    const emailTransporter = createTransporter();
+    // Initialize transporter if not already created
+    if (!transporter) {
+      await initEmailService();
+    }
     
-    if (!emailTransporter) {
+    if (!transporter) {
       console.warn(`⚠️  Email not sent to ${to} - Email service not configured`);
       return;
     }
@@ -71,11 +83,28 @@ export const sendEmail = async ({ to, subject, html, text }) => {
       ...(text && { text }), // Include plain text if provided
     };
 
-    const info = await emailTransporter.sendMail(mailOptions);
+    const info = await transporter.sendMail(mailOptions);
     console.log(`✅ Email sent successfully to ${to}`, info.messageId);
   } catch (error) {
     // Log error but don't throw - email failure shouldn't break the flow
     console.error(`❌ Email send failed to ${to}:`, error.message);
     // In production, you might want to queue failed emails for retry
+  }
+};
+
+/**
+ * Close the email service transporter
+ * This should be called in tests to ensure clean exit
+ * @returns {Promise<void>}
+ */
+export const closeEmailService = async () => {
+  if (transporter && transporter.close) {
+    try {
+      transporter.close();
+      transporter = null;
+    } catch (error) {
+      // Ignore errors when closing
+      console.warn('⚠️  Error closing email service:', error.message);
+    }
   }
 };

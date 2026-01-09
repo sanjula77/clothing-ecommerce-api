@@ -1,6 +1,8 @@
 import Cart from "../models/Cart.js";
 import Product from "../models/Product.js";
 import mongoose from "mongoose";
+import { asyncHandler } from "../middleware/asyncHandler.js";
+import { AppError } from "../utils/AppError.js";
 
 // ============================================
 // GUEST CART (No Authentication Required)
@@ -9,15 +11,11 @@ import mongoose from "mongoose";
 // @desc   Get guest cart (validate items)
 // @route  POST /api/cart/guest/validate
 // @access Public
-export const validateGuestCart = async (req, res, next) => {
-  try {
+export const validateGuestCart = asyncHandler(async (req, res, next) => {
     const { items } = req.body;
 
     if (!Array.isArray(items)) {
-      return res.status(400).json({
-        success: false,
-        error: "Items must be an array",
-      });
+      throw new AppError("Items must be an array", 400);
     }
 
     const validatedItems = [];
@@ -47,123 +45,101 @@ export const validateGuestCart = async (req, res, next) => {
       }
     }
 
-    res.json({
-      success: true,
-      data: validatedItems,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.json({
+    success: true,
+    data: validatedItems,
+  });
+});
 
 // Helper function to populate cart with product details
 const populateCart = async (cart) => {
+  // Ensure cart is a Mongoose document (not a plain object)
+  if (!cart.populate) {
+    cart = await Cart.findById(cart._id || cart.id);
+  }
+  
   await cart.populate({
     path: "items.product",
     select: "name price imageUrl category sizes stock inStock",
   });
 
-  // Calculate subtotal for each item
-  cart.items = cart.items.map((item) => {
-    const product = item.product;
-    const subtotal = product ? product.price * item.quantity : 0;
-    return {
-      ...item.toObject(),
-      subtotal,
-    };
-  });
+  // Filter out items with deleted products and calculate subtotal
+  const itemsWithSubtotals = cart.items
+    .filter((item) => item.product !== null && item.product !== undefined)
+    .map((item) => {
+      const product = item.product;
+      // Ensure product has a valid price (defensive check)
+      const productPrice = product && typeof product.price === 'number' && product.price > 0 
+        ? product.price 
+        : (product?.price || 0);
+      const quantity = item.quantity || 0;
+      const subtotal = productPrice * quantity;
+      
+      return {
+        ...item.toObject(),
+        subtotal,
+      };
+    });
 
-  // Calculate total
-  const total = cart.items.reduce((sum, item) => sum + item.subtotal, 0);
-  const totalItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+  // Calculate total from items with subtotals
+  const total = itemsWithSubtotals.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+  const totalItems = itemsWithSubtotals.reduce((sum, item) => sum + (item.quantity || 0), 0);
 
-  return {
-    ...cart.toObject(),
+  // Build result object - use cart.toObject() for base properties, then override items
+  const cartObject = cart.toObject();
+  const result = {
+    ...cartObject,
+    items: itemsWithSubtotals, // Use the modified items array with subtotals
     total,
     totalItems,
   };
+
+  return result;
 };
 
 // @desc   Get user's cart
 // @route  GET /api/cart
 // @access Private
-export const getCart = async (req, res, next) => {
-  try {
-    let cart = await Cart.findOne({ user: req.user.id });
+export const getCart = asyncHandler(async (req, res, next) => {
+  let cart = await Cart.findOne({ user: req.user.id });
 
-    if (!cart) {
-      cart = await Cart.create({ user: req.user.id, items: [] });
-    }
-
-    const cartWithDetails = await populateCart(cart);
-
-    res.json({
-      success: true,
-      data: cartWithDetails,
-    });
-  } catch (error) {
-    next(error);
+  if (!cart) {
+    cart = await Cart.create({ user: req.user.id, items: [] });
   }
-};
+
+  const cartWithDetails = await populateCart(cart);
+
+  res.json({
+    success: true,
+    data: cartWithDetails,
+  });
+});
 
 // @desc   Add item to cart
 // @route  POST /api/cart
 // @access Private
-export const addToCart = async (req, res, next) => {
-  try {
-    const { productId, size, quantity } = req.body;
+export const addToCart = asyncHandler(async (req, res, next) => {
+  const { productId, size, quantity } = req.body;
 
-    // Validation
-    if (!productId || !size || !quantity) {
-      return res.status(400).json({
-        success: false,
-        error: "productId, size, and quantity are required",
-      });
-    }
+  // Joi validation already handled productId, size, quantity format
+  // Now check business logic
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new AppError("Product not found", 404);
+  }
 
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid product ID format",
-      });
-    }
+  if (!product.inStock) {
+    throw new AppError("Product is out of stock", 400);
+  }
 
-    if (!Number.isInteger(quantity) || quantity < 1) {
-      return res.status(400).json({
-        success: false,
-        error: "Quantity must be a positive integer",
-      });
-    }
+  if (!product.sizes.includes(size)) {
+    throw new AppError("Invalid size for this product", 400);
+  }
 
-    const product = await Product.findById(productId);
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        error: "Product not found",
-      });
-    }
-
-    if (!product.inStock) {
-      return res.status(400).json({
-        success: false,
-        error: "Product is out of stock",
-      });
-    }
-
-    if (!product.sizes.includes(size)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid size for this product",
-      });
-    }
-
-    // Check stock availability
-    if (product.stock < quantity) {
-      return res.status(400).json({
-        success: false,
-        error: `Only ${product.stock} items available in stock`,
-      });
-    }
+  // Check stock availability
+  if (product.stock < quantity) {
+    throw new AppError(`Only ${product.stock} items available in stock`, 400);
+  }
 
     let cart = await Cart.findOne({ user: req.user.id });
 
@@ -172,6 +148,8 @@ export const addToCart = async (req, res, next) => {
         user: req.user.id,
         items: [{ product: productId, size, quantity }],
       });
+      // Reload newly created cart to ensure it's a fresh Mongoose document
+      cart = await Cart.findById(cart._id);
     } else {
       const existingItem = cart.items.find(
         (item) =>
@@ -182,10 +160,10 @@ export const addToCart = async (req, res, next) => {
         const newQuantity = existingItem.quantity + quantity;
         // Check if new total quantity exceeds stock
         if (product.stock < newQuantity) {
-          return res.status(400).json({
-            success: false,
-            error: `Cannot add ${quantity} items. Only ${product.stock - existingItem.quantity} more available in stock`,
-          });
+          throw new AppError(
+            `Cannot add ${quantity} items. Only ${product.stock - existingItem.quantity} more available in stock`,
+            400
+          );
         }
         existingItem.quantity = newQuantity;
       } else {
@@ -193,92 +171,83 @@ export const addToCart = async (req, res, next) => {
       }
 
       await cart.save();
+      // Reload cart from database to ensure we have the latest data before populating
+      cart = await Cart.findById(cart._id);
     }
 
     const cartWithDetails = await populateCart(cart);
 
-    res.status(200).json({
-      success: true,
-      data: cartWithDetails,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.status(200).json({
+    success: true,
+    data: cartWithDetails,
+  });
+});
 
 // @desc   Update cart item quantity
 // @route  PUT /api/cart/:itemId
 // @access Private
-export const updateCartItem = async (req, res, next) => {
-  try {
-    const { quantity } = req.body;
+export const updateCartItem = asyncHandler(async (req, res, next) => {
+  const { quantity } = req.body;
 
-    if (!quantity || !Number.isInteger(quantity) || quantity < 1) {
-      return res.status(400).json({
-        success: false,
-        error: "Quantity must be a positive integer",
-      });
-    }
+  // Joi validation already handled quantity format
+  const cart = await Cart.findOne({ user: req.user.id });
 
-    const cart = await Cart.findOne({ user: req.user.id });
+  if (!cart) {
+    throw new AppError("Cart not found", 404);
+  }
 
-    if (!cart) {
-      return res.status(404).json({
-        success: false,
-        error: "Cart not found",
-      });
-    }
+  const item = cart.items.id(req.params.itemId);
+  if (!item) {
+    throw new AppError("Cart item not found", 404);
+  }
 
-    const item = cart.items.id(req.params.itemId);
-    if (!item) {
-      return res.status(404).json({
-        success: false,
-        error: "Cart item not found",
-      });
-    }
+  // Check stock availability
+  const product = await Product.findById(item.product);
+  if (!product) {
+    throw new AppError("Product not found", 404);
+  }
 
-    // Check stock availability
-    const product = await Product.findById(item.product);
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        error: "Product not found",
-      });
-    }
+  // Calculate current quantity of this product+size combination in cart (excluding the item being updated)
+  const currentQuantityInCart = cart.items
+    .filter(
+      (cartItem) =>
+        cartItem._id.toString() !== req.params.itemId &&
+        cartItem.product.toString() === item.product.toString() &&
+        cartItem.size === item.size
+    )
+    .reduce((sum, cartItem) => sum + cartItem.quantity, 0);
 
-    if (product.stock < quantity) {
-      return res.status(400).json({
-        success: false,
-        error: `Only ${product.stock} items available in stock`,
-      });
-    }
+  // Available stock = total stock - quantity already in cart (excluding current item)
+  const availableStock = product.stock - currentQuantityInCart;
+
+  if (availableStock < quantity) {
+    throw new AppError(
+      `Only ${availableStock} items available in stock (${product.stock} total, ${currentQuantityInCart} already in cart)`,
+      400
+    );
+  }
 
     item.quantity = quantity;
     await cart.save();
 
-    const cartWithDetails = await populateCart(cart);
+    // Reload cart from database to ensure we have the latest data before populating
+    const refreshedCart = await Cart.findById(cart._id);
+    const cartWithDetails = await populateCart(refreshedCart);
 
-    res.json({
-      success: true,
-      data: cartWithDetails,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.json({
+    success: true,
+    data: cartWithDetails,
+  });
+});
 
 // @desc   Remove item from cart
 // @route  DELETE /api/cart/:itemId
 // @access Private
-export const removeCartItem = async (req, res, next) => {
-  try {
+export const removeCartItem = asyncHandler(async (req, res, next) => {
     const cart = await Cart.findOne({ user: req.user.id });
 
     if (!cart) {
-      return res.status(404).json({
-        success: false,
-        error: "Cart not found",
-      });
+      throw new AppError("Cart not found", 404);
     }
 
     const itemExists = cart.items.some(
@@ -286,10 +255,7 @@ export const removeCartItem = async (req, res, next) => {
     );
 
     if (!itemExists) {
-      return res.status(404).json({
-        success: false,
-        error: "Cart item not found",
-      });
+      throw new AppError("Cart item not found", 404);
     }
 
     cart.items = cart.items.filter(
@@ -298,63 +264,63 @@ export const removeCartItem = async (req, res, next) => {
 
     await cart.save();
 
-    const cartWithDetails = await populateCart(cart);
+    // Reload cart from database to ensure we have the latest data before populating
+    const refreshedCart = await Cart.findById(cart._id);
+    const cartWithDetails = await populateCart(refreshedCart);
 
-    res.json({
-      success: true,
-      data: cartWithDetails,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.json({
+    success: true,
+    data: cartWithDetails,
+  });
+});
 
 // @desc   Clear entire cart
 // @route  DELETE /api/cart
 // @access Private
-export const clearCart = async (req, res, next) => {
-  try {
+export const clearCart = asyncHandler(async (req, res, next) => {
     const cart = await Cart.findOne({ user: req.user.id });
 
     if (!cart) {
-      return res.status(404).json({
-        success: false,
-        error: "Cart not found",
-      });
+      throw new AppError("Cart not found", 404);
     }
 
     cart.items = [];
     await cart.save();
 
-    const cartWithDetails = await populateCart(cart);
+    // Reload cart from database to ensure we have the latest data before populating
+    const refreshedCart = await Cart.findById(cart._id);
+    const cartWithDetails = await populateCart(refreshedCart);
 
-    res.json({
-      success: true,
-      data: cartWithDetails,
-      message: "Cart cleared successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.json({
+    success: true,
+    data: cartWithDetails,
+    message: "Cart cleared successfully",
+  });
+});
 
 // @desc   Merge guest cart with user cart
 // @route  POST /api/cart/merge
 // @access Private
-export const mergeCart = async (req, res, next) => {
-  try {
+export const mergeCart = asyncHandler(async (req, res, next) => {
     const { items } = req.body; // guest cart items
 
     if (!Array.isArray(items)) {
-      return res.status(400).json({
-        success: false,
-        error: "Items must be an array",
-      });
+      throw new AppError("Items must be an array", 400);
     }
 
     let cart = await Cart.findOne({ user: req.user.id });
     if (!cart) {
       cart = await Cart.create({ user: req.user.id, items: [] });
+    }
+
+    // If no items to merge, just return existing cart
+    if (items.length === 0) {
+      const cartWithDetails = await populateCart(cart);
+      return res.json({
+        success: true,
+        data: cartWithDetails,
+        message: "Cart merged successfully",
+      });
     }
 
     // Validate and merge each guest item
@@ -403,15 +369,14 @@ export const mergeCart = async (req, res, next) => {
 
     await cart.save();
 
-    const cartWithDetails = await populateCart(cart);
+    // Reload cart from database to ensure we have the latest data before populating
+    const refreshedCart = await Cart.findById(cart._id);
+    const cartWithDetails = await populateCart(refreshedCart);
 
-    res.json({
-      success: true,
-      data: cartWithDetails,
-      message: "Cart merged successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+  res.json({
+    success: true,
+    data: cartWithDetails,
+    message: "Cart merged successfully",
+  });
+});
 
