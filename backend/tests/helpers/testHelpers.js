@@ -1,8 +1,8 @@
-import User from '../../src/models/User.js';
-import Product from '../../src/models/Product.js';
-import jwt from 'jsonwebtoken';
-import request from 'supertest';
-import app from '../../src/app.js';
+import User from "../../src/models/User.js";
+import Product from "../../src/models/Product.js";
+import jwt from "jsonwebtoken";
+import request from "supertest";
+import app from "../../src/app.js";
 
 /**
  * Retry helper for database operations that may need time to persist
@@ -24,7 +24,7 @@ export const retryOperation = async (operation, options = {}) => {
     } catch (error) {
       lastError = error;
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, currentDelay));
+        await new Promise((resolve) => setTimeout(resolve, currentDelay));
         currentDelay *= backoff; // Exponential backoff
       }
     }
@@ -39,62 +39,66 @@ export const retryOperation = async (operation, options = {}) => {
  * @param {string} prefix - Optional prefix for email (default: 'test')
  * @returns {Promise<{user: Object, token: string}>}
  */
-export const createTestUser = async (prefix = 'test') => {
+export const createTestUser = async (prefix = "test") => {
   // Use unique email for each test to avoid conflicts
   const uniqueEmail = `${prefix}-${Date.now()}-${Math.random().toString(36).substring(7)}@example.com`;
-  
+
   try {
     // Create user
     const user = await User.create({
-      name: 'Test User',
+      name: "Test User",
       email: uniqueEmail,
-      password: 'password123',
+      password: "password123",
     });
 
     // Ensure user is saved and has an ID
     if (!user || !user._id) {
-      throw new Error('User was not created properly - no user or ID returned');
+      throw new Error("User was not created properly - no user or ID returned");
     }
 
     // Force a fresh query to ensure user is persisted (bypasses any caching)
     // Use findOne with the exact email to ensure we get the persisted version
     // Note: User model has lowercase: true on email, so we need to match lowercase
-    let persistedUser = await User.findOne({ email: uniqueEmail.toLowerCase() });
-    
+    let persistedUser = await User.findOne({
+      email: uniqueEmail.toLowerCase(),
+    });
+
     // If still not found, retry with findById using retry mechanism
     if (!persistedUser) {
       persistedUser = await retryOperation(
         async () => {
           const found = await User.findById(user._id);
           if (!found) {
-            throw new Error('User not found yet');
+            throw new Error("User not found yet");
           }
           return found;
         },
         { maxRetries: 5, delay: 50, backoff: 1.5 }
       );
     }
-    
+
     // If still not found, try findOne again with lowercase
     if (!persistedUser) {
       persistedUser = await retryOperation(
         async () => {
-          const found = await User.findOne({ email: uniqueEmail.toLowerCase() });
+          const found = await User.findOne({
+            email: uniqueEmail.toLowerCase(),
+          });
           if (!found) {
-            throw new Error('User not found yet');
+            throw new Error("User not found yet");
           }
           return found;
         },
         { maxRetries: 3, delay: 50, backoff: 1.5 }
       );
     }
-    
+
     if (!persistedUser) {
       // Last attempt: check if ANY users exist
       const allUsers = await User.find({});
       throw new Error(
         `User ${user._id} was not found in database after creation. Email: ${uniqueEmail}. ` +
-        `Total users in DB: ${allUsers.length}. This suggests a database persistence issue.`
+          `Total users in DB: ${allUsers.length}. This suggests a database persistence issue.`
       );
     }
 
@@ -104,14 +108,16 @@ export const createTestUser = async (prefix = 'test') => {
     // Use process.env.JWT_SECRET directly (set by setup.js) instead of env.JWT_SECRET
     // This ensures we use the test secret, not a cached value from before setup
     const token = jwt.sign({ id: userId }, process.env.JWT_SECRET, {
-      expiresIn: '1h', // Shorter expiration for tests
+      expiresIn: "1h", // Shorter expiration for tests
     });
 
     return { user: persistedUser, token };
   } catch (error) {
     // If creation fails, provide more context
     if (error.code === 11000) {
-      throw new Error(`User creation failed: Duplicate email (${uniqueEmail}). Database may not have been cleared properly.`);
+      throw new Error(
+        `User creation failed: Duplicate email (${uniqueEmail}). Database may not have been cleared properly.`
+      );
     }
     throw error;
   }
@@ -124,12 +130,12 @@ export const createTestUser = async (prefix = 'test') => {
  */
 export const createTestProduct = async (overrides = {}) => {
   return await Product.create({
-    name: 'Test Product',
-    description: 'Test Description',
+    name: "Test Product",
+    description: "Test Description",
     price: 29.99,
-    imageUrl: 'https://example.com/image.jpg',
-    category: 'Men',
-    sizes: ['S', 'M', 'L', 'XL'],
+    imageUrl: "https://example.com/image.jpg",
+    category: "Men",
+    sizes: ["S", "M", "L", "XL"],
     stock: 10,
     inStock: true,
     ...overrides,
@@ -146,8 +152,7 @@ export const createTestProduct = async (overrides = {}) => {
  */
 export const addToCart = async (token, productId, size, quantity) => {
   return await request(app)
-    .post('/api/cart')
-    .set('Authorization', `Bearer ${token}`)
+    .post("/api/cart")
+    .set("Authorization", `Bearer ${token}`)
     .send({ productId, size, quantity });
 };
-

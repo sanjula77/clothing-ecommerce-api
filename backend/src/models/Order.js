@@ -76,7 +76,14 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: {
-        values: ["PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"],
+        values: [
+          "PENDING",
+          "PAID",
+          "PROCESSING",
+          "SHIPPED",
+          "DELIVERED",
+          "CANCELLED",
+        ],
         message: "Invalid order status",
       },
       default: "PENDING",
@@ -145,7 +152,11 @@ orderSchema.virtual("itemCount").get(function () {
 orderSchema.pre("save", function () {
   if (!this.isNew) {
     // Prevent changing immutable fields
-    if (this.isModified("user") || this.isModified("items") || this.isModified("totalAmount")) {
+    if (
+      this.isModified("user") ||
+      this.isModified("items") ||
+      this.isModified("totalAmount")
+    ) {
       throw new Error("Cannot modify immutable order fields");
     }
   }

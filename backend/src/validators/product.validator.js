@@ -34,4 +34,3 @@ export const productIdSchema = Joi.object({
       "string.pattern.base": "Invalid product ID format",
     }),
 });
-

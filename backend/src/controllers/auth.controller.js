@@ -12,7 +12,7 @@ const generateToken = (userId) => {
 // @desc   Register new user
 // @route  POST /api/auth/register
 // @access Public
-export const register = asyncHandler(async (req, res, next) => {
+export const register = asyncHandler(async (req, res, _next) => {
   const { name, email, password } = req.body;
 
   // Check if user exists
@@ -40,7 +40,7 @@ export const register = asyncHandler(async (req, res, next) => {
 // @desc   Login user
 // @route  POST /api/auth/login
 // @access Public
-export const login = asyncHandler(async (req, res, next) => {
+export const login = asyncHandler(async (req, res, _next) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
@@ -70,7 +70,7 @@ export const login = asyncHandler(async (req, res, next) => {
 // @desc   Get current user
 // @route  GET /api/auth/me
 // @access Private
-export const getMe = asyncHandler(async (req, res, next) => {
+export const getMe = asyncHandler(async (req, res, _next) => {
   // User is already fetched in protect middleware without password
   res.json({
     success: true,

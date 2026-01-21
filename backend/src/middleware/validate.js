@@ -1,5 +1,3 @@
-import Joi from "joi";
-
 // Validation middleware factory
 export const validate = (schema) => {
   return (req, res, next) => {
@@ -67,15 +65,14 @@ export const validateParams = (schema) => {
     // If params is read-only, store validated values separately
     try {
       for (const key in value) {
-        if (value.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(value, key)) {
           req.params[key] = value[key];
         }
       }
-    } catch (e) {
+    } catch {
       // If params is read-only, store validated values separately
       req.validatedParams = value;
     }
     next();
   };
 };
-

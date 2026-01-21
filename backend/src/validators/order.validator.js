@@ -15,10 +15,14 @@ export const createOrderSchema = Joi.object({
     state: Joi.string().trim().min(2).max(100).required().messages({
       "string.empty": "State is required",
     }),
-    zipCode: Joi.string().trim().pattern(/^[0-9A-Za-z\s-]{3,10}$/).required().messages({
-      "string.empty": "Zip code is required",
-      "string.pattern.base": "Invalid zip code format",
-    }),
+    zipCode: Joi.string()
+      .trim()
+      .pattern(/^[0-9A-Za-z\s-]{3,10}$/)
+      .required()
+      .messages({
+        "string.empty": "Zip code is required",
+        "string.pattern.base": "Invalid zip code format",
+      }),
     country: Joi.string().trim().min(2).max(100).required().messages({
       "string.empty": "Country is required",
     }),
@@ -27,7 +31,8 @@ export const createOrderSchema = Joi.object({
     .valid("CASH_ON_DELIVERY", "CREDIT_CARD", "DEBIT_CARD", "PAYPAL")
     .required()
     .messages({
-      "any.only": "Payment method must be one of: CASH_ON_DELIVERY, CREDIT_CARD, DEBIT_CARD, PAYPAL",
+      "any.only":
+        "Payment method must be one of: CASH_ON_DELIVERY, CREDIT_CARD, DEBIT_CARD, PAYPAL",
       "string.empty": "Payment method is required",
     }),
 });
@@ -38,7 +43,8 @@ export const updateOrderStatusSchema = Joi.object({
     .valid("PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED")
     .required()
     .messages({
-      "any.only": "Status must be one of: PENDING, PAID, PROCESSING, SHIPPED, DELIVERED, CANCELLED",
+      "any.only":
+        "Status must be one of: PENDING, PAID, PROCESSING, SHIPPED, DELIVERED, CANCELLED",
       "string.empty": "Status is required",
     }),
 });
@@ -62,4 +68,3 @@ export const getMyOrdersQuerySchema = Joi.object({
     .valid("PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED")
     .optional(),
 });
-

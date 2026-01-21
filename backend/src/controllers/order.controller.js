@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import Order from "../models/Order.js";
 import Cart from "../models/Cart.js";
-import Product from "../models/Product.js";
 import User from "../models/User.js";
 import { sendEmail } from "../services/email.service.js";
 import { orderConfirmationTemplate } from "../templates/orderConfirmation.template.js";
@@ -11,7 +10,7 @@ import { AppError } from "../utils/AppError.js";
 // @desc   Create new order from cart
 // @route  POST /api/orders
 // @access Private
-export const createOrder = asyncHandler(async (req, res, next) => {
+export const createOrder = asyncHandler(async (req, res, _next) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -27,7 +26,10 @@ export const createOrder = asyncHandler(async (req, res, next) => {
     if (!cart || cart.items.length === 0) {
       await session.abortTransaction();
       session.endSession();
-      throw new AppError("Cart is empty. Add items to cart before checkout.", 400);
+      throw new AppError(
+        "Cart is empty. Add items to cart before checkout.",
+        400
+      );
     }
 
     // Validate stock availability and build order items
@@ -70,7 +72,11 @@ export const createOrder = asyncHandler(async (req, res, next) => {
     if (errors.length > 0) {
       await session.abortTransaction();
       session.endSession();
-      throw new AppError("Some items in your cart are no longer available", 400, errors);
+      throw new AppError(
+        "Some items in your cart are no longer available",
+        400,
+        errors
+      );
     }
 
     // Calculate total amount
@@ -139,7 +145,10 @@ export const createOrder = asyncHandler(async (req, res, next) => {
       html: orderConfirmationTemplate(order[0], user),
     }).catch((emailError) => {
       // Log but don't throw - order is already created
-      console.error("Failed to send order confirmation email:", emailError.message);
+      console.error(
+        "Failed to send order confirmation email:",
+        emailError.message
+      );
     });
 
     res.status(201).json({
@@ -160,80 +169,87 @@ export const createOrder = asyncHandler(async (req, res, next) => {
 // @desc   Get user's orders
 // @route  GET /api/orders/my
 // @access Private
-export const getMyOrders = asyncHandler(async (req, res, next) => {
-    const { page = 1, limit = 10, status } = req.query;
+export const getMyOrders = asyncHandler(async (req, res, _next) => {
+  const { page = 1, limit = 10, status } = req.query;
 
-    // Build query
-    const query = { user: req.user.id };
-    if (status) {
-      const validStatuses = ["PENDING", "PAID", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"];
-      if (validStatuses.includes(status.toUpperCase())) {
-        query.status = status.toUpperCase();
-      }
+  // Build query
+  const query = { user: req.user.id };
+  if (status) {
+    const validStatuses = [
+      "PENDING",
+      "PAID",
+      "PROCESSING",
+      "SHIPPED",
+      "DELIVERED",
+      "CANCELLED",
+    ];
+    if (validStatuses.includes(status.toUpperCase())) {
+      query.status = status.toUpperCase();
     }
+  }
 
-    // Pagination
-    const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 10));
-    const skip = (pageNum - 1) * limitNum;
+  // Pagination
+  const pageNum = Math.max(1, parseInt(page) || 1);
+  const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 10));
+  const skip = (pageNum - 1) * limitNum;
 
-    // Get orders
-    const orders = await Order.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limitNum)
-      .lean();
+  // Get orders
+  const orders = await Order.find(query)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limitNum)
+    .lean();
 
-    // Get total count
-    const total = await Order.countDocuments(query);
-    const totalPages = Math.ceil(total / limitNum);
+  // Get total count
+  const total = await Order.countDocuments(query);
+  const totalPages = Math.ceil(total / limitNum);
 
-    res.json({
-      success: true,
-      data: orders,
-      pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        totalPages,
-        hasNextPage: pageNum < totalPages,
-        hasPrevPage: pageNum > 1,
-      },
-    });
+  res.json({
+    success: true,
+    data: orders,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      totalPages,
+      hasNextPage: pageNum < totalPages,
+      hasPrevPage: pageNum > 1,
+    },
+  });
 });
 
 // @desc   Get order by ID
 // @route  GET /api/orders/:id
 // @access Private
-export const getOrderById = asyncHandler(async (req, res, next) => {
-    const { id } = req.params;
+export const getOrderById = asyncHandler(async (req, res, _next) => {
+  const { id } = req.params;
 
-    // Validate ObjectId
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new AppError("Invalid order ID format", 400);
-    }
+  // Validate ObjectId
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError("Invalid order ID format", 400);
+  }
 
-    const order = await Order.findById(id).populate("user", "name email");
+  const order = await Order.findById(id).populate("user", "name email");
 
-    if (!order) {
-      throw new AppError("Order not found", 404);
-    }
+  if (!order) {
+    throw new AppError("Order not found", 404);
+  }
 
-    // Check if order belongs to user
-    if (order.user._id.toString() !== req.user.id) {
-      throw new AppError("Not authorized to view this order", 403);
-    }
+  // Check if order belongs to user
+  if (order.user._id.toString() !== req.user.id) {
+    throw new AppError("Not authorized to view this order", 403);
+  }
 
-    res.json({
-      success: true,
-      data: order,
-    });
+  res.json({
+    success: true,
+    data: order,
+  });
 });
 
 // @desc   Update order status (for admin - future implementation)
 // @route  PUT /api/orders/:id/status
 // @access Private (Admin only - to be implemented)
-export const updateOrderStatus = asyncHandler(async (req, res, next) => {
+export const updateOrderStatus = asyncHandler(async (req, res, _next) => {
   const { id } = req.params;
   const { status } = req.body;
 
@@ -257,13 +273,12 @@ export const updateOrderStatus = asyncHandler(async (req, res, next) => {
     throw new AppError("Cannot update status of cancelled order", 400);
   }
 
-    order.status = status;
-    await order.save();
+  order.status = status;
+  await order.save();
 
-    res.json({
-      success: true,
-      data: order,
-      message: "Order status updated successfully",
-    });
+  res.json({
+    success: true,
+    data: order,
+    message: "Order status updated successfully",
+  });
 });
-  
